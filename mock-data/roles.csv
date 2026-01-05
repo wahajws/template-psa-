@@ -1,0 +1,6 @@
+id,name,role_type,description,is_system_role,created_at,updated_at,created_by,updated_by,deleted_at
+2b1a8391-4d89-4120-8db2-cf22963cc6a3,platform_super_admin,platform_super_admin,,1,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+cb59d916-b61d-4c74-b1da-7a000dbb559c,company_admin,company_admin,,1,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+0715a72d-1e7b-4dcc-b2d3-983ef2aac8fb,branch_manager,branch_manager,,1,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+b529cd09-32a2-455a-8d0b-a07624356cd9,branch_staff,branch_staff,,1,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+977a8142-2cd4-493b-b2ae-ba93efc532bf,customer,customer,,1,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,

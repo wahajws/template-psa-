@@ -1,0 +1,13 @@
+id,name,resource,action,description,created_at,updated_at,created_by,updated_by,deleted_at
+9488b5d9-5b37-4c36-be74-8dd5c973e5d6,companies.create,companies,create,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+d5a2ed03-e72b-4bfd-b4e4-ef367b50a3c2,companies.read,companies,read,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+aa8d8cfa-5652-4fef-a48c-ff5047c03270,companies.update,companies,update,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+d97ec52c-6d77-4896-a360-5b09ba223f7a,companies.delete,companies,delete,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+162361f9-b7fc-4c59-bfea-14613d81c343,branches.create,branches,create,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+281b3131-6680-4cc0-865b-3dc9e1fd41a2,branches.read,branches,read,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+7729af3b-55ef-41a4-b8ea-6a3bc77ff5f8,branches.update,branches,update,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+66c1a505-acb8-4c6d-8f26-7775cf1b8bb0,branches.delete,branches,delete,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+343eaf36-8959-4c5b-8b38-37a80a877826,bookings.create,bookings,create,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+0a0e775b-8d54-41c9-befe-4756db34dbe1,bookings.read,bookings,read,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+4a228ef6-6736-41e3-aca7-788177b463fa,bookings.update,bookings,update,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,
+a70d3b86-43d2-453f-b284-8d87fa17215e,bookings.delete,bookings,delete,,2024-01-01 00:00:00,2024-01-01 00:00:00,23adaeda-61a3-464f-b460-80193d1d63da,23adaeda-61a3-464f-b460-80193d1d63da,

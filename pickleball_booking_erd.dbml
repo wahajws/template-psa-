@@ -1,0 +1,2048 @@
+// Production-Grade Multi-Tenant Sports Booking Platform ERD
+// Primary Use Case: Pickleball Court Bookings + Memberships + Services
+// MySQL 8 Compatible
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+Enum user_status {
+  active
+  inactive
+  suspended
+  deleted
+}
+
+Enum role_type {
+  platform_super_admin
+  company_admin
+  branch_manager
+  branch_staff
+  customer
+}
+
+Enum auth_provider {
+  email_password
+  phone_otp
+  google
+  facebook
+  apple
+}
+
+Enum session_status {
+  active
+  expired
+  revoked
+}
+
+Enum otp_status {
+  pending
+  verified
+  expired
+  used
+}
+
+Enum company_status {
+  active
+  suspended
+  deleted
+}
+
+Enum branch_status {
+  active
+  suspended
+  deleted
+}
+
+Enum contact_type {
+  phone
+  email
+  fax
+  whatsapp
+}
+
+Enum court_status {
+  active
+  maintenance
+  closed
+  deleted
+}
+
+Enum surface_type {
+  indoor
+  outdoor
+  hard
+  clay
+  grass
+  synthetic
+}
+
+Enum block_type {
+  maintenance
+  closure
+  private_event
+  buffer
+  holiday
+}
+
+Enum booking_status {
+  pending
+  confirmed
+  cancelled
+  completed
+  no_show
+  expired
+}
+
+Enum booking_source {
+  customer_web
+  customer_app
+  admin_manual
+  admin_api
+}
+
+Enum service_type {
+  court_booking
+  gym_membership
+  class_session
+  coaching
+  equipment_rental
+  other
+}
+
+Enum membership_plan_scope {
+  company_wide
+  branch_specific
+}
+
+Enum membership_billing_type {
+  monthly
+  annual
+  prepaid_passes
+  credits
+}
+
+Enum membership_status {
+  trialing
+  active
+  past_due
+  cancelled
+  expired
+}
+
+Enum campaign_discount_type {
+  percent_off
+  fixed_amount_off
+}
+
+Enum campaign_applicability {
+  bookings
+  memberships
+  specific_services
+  specific_courts
+  all
+}
+
+Enum payment_status {
+  pending
+  processing
+  succeeded
+  failed
+  cancelled
+  refunded
+  partially_refunded
+}
+
+Enum payment_method {
+  credit_card
+  debit_card
+  bank_transfer
+  wallet
+  cash
+  other
+}
+
+Enum refund_status {
+  pending
+  processing
+  completed
+  failed
+  cancelled
+}
+
+Enum invoice_status {
+  draft
+  issued
+  paid
+  overdue
+  cancelled
+  voided
+}
+
+Enum notification_channel {
+  email
+  sms
+  whatsapp
+  push
+}
+
+Enum notification_status {
+  pending
+  sent
+  delivered
+  failed
+  bounced
+}
+
+Enum review_status {
+  pending
+  approved
+  rejected
+  hidden
+}
+
+Enum ticket_status {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+Enum ticket_priority {
+  low
+  medium
+  high
+  urgent
+}
+
+Enum media_owner_type {
+  company
+  branch
+  court
+  campaign
+  user
+  service
+  booking
+  membership_plan
+  review
+  other
+}
+
+Enum media_storage_mode {
+  db_blob
+  external_url
+}
+
+Enum media_variant_type {
+  thumbnail
+  small
+  medium
+  large
+  original
+}
+
+Enum audit_action {
+  create
+  update
+  delete
+  restore
+  login
+  logout
+  permission_grant
+  permission_revoke
+}
+
+Enum customer_status {
+  active
+  left
+  blocked
+}
+
+Enum membership_plan_type {
+  recurring
+  prepaid_pass
+  credits
+}
+
+Enum gift_card_status {
+  active
+  redeemed
+  expired
+  disabled
+}
+
+// ============================================================================
+// 1. MULTI-TENANCY + USERS + RBAC
+// ============================================================================
+
+Table users {
+  id char(36) [primary key]
+  email varchar(255)
+  phone varchar(20)
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  date_of_birth date
+  status user_status [default: 'active', not null]
+  email_verified_at timestamp
+  phone_verified_at timestamp
+  last_login_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    email [unique]
+    phone [unique]
+    status
+    deleted_at
+    (email, deleted_at)
+  }
+}
+
+Table roles {
+  id char(36) [primary key]
+  name varchar(100) [unique, not null]
+  role_type role_type [not null]
+  description text
+  is_system_role boolean [default: false, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    name [unique]
+    role_type
+    deleted_at
+  }
+}
+
+Table permissions {
+  id char(36) [primary key]
+  name varchar(100) [unique, not null]
+  resource varchar(100) [not null]
+  action varchar(50) [not null]
+  description text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    name [unique]
+    (resource, action) [unique]
+    resource
+    deleted_at
+  }
+}
+
+Table role_permissions {
+  id char(36) [primary key]
+  role_id char(36) [not null]
+  permission_id char(36) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (role_id, permission_id) [unique]
+    role_id
+    permission_id
+    deleted_at
+  ]
+}
+
+Table user_roles {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  role_id char(36) [not null]
+  company_id char(36)
+  branch_id char(36)
+  assigned_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  assigned_by char(36) [not null]
+  expires_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (user_id, role_id, company_id, branch_id) [unique]
+    user_id
+    role_id
+    company_id
+    branch_id
+    expires_at
+    deleted_at
+  }
+  
+  Note: 'Rules: platform_super_admin must have company_id=NULL and branch_id=NULL. Company roles require company_id NOT NULL, branch_id=NULL. Branch roles require both company_id and branch_id NOT NULL.'
+}
+
+Table auth_identities {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  provider auth_provider [not null]
+  provider_user_id varchar(255) [not null]
+  email varchar(255)
+  phone varchar(20)
+  provider_metadata json
+  is_primary boolean [default: false, not null]
+  verified_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (provider, provider_user_id) [unique]
+    user_id
+    (user_id, provider) [unique]
+    email
+    phone
+    is_primary
+    deleted_at
+  }
+}
+
+Table auth_sessions {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  session_token varchar(255) [unique, not null]
+  refresh_token varchar(255) [unique]
+  status session_status [default: 'active', not null]
+  ip_address varchar(45)
+  user_agent text
+  device_info json
+  expires_at timestamp [not null]
+  last_activity_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    session_token [unique]
+    refresh_token [unique]
+    user_id
+    status
+    expires_at
+    deleted_at
+  }
+}
+
+Table otp_codes {
+  id char(36) [primary key]
+  user_id char(36)
+  phone varchar(20) [not null]
+  email varchar(255)
+  code varchar(10) [not null]
+  status otp_status [default: 'pending', not null]
+  purpose varchar(50) [not null] // 'login', 'verify_phone', 'reset_password', etc.
+  attempts integer [default: 0, not null]
+  max_attempts integer [default: 3, not null]
+  expires_at timestamp [not null]
+  verified_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (phone, code, status) [unique]
+    (email, code, status) [unique]
+    user_id
+    status
+    expires_at
+    deleted_at
+  }
+}
+
+Table company_customers {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  company_id char(36) [not null]
+  status customer_status [default: 'active', not null]
+  joined_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  marketing_opt_in boolean [default: false, not null]
+  default_branch_id char(36)
+  left_at timestamp
+  blocked_at timestamp
+  blocked_reason text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (user_id, company_id) [unique]
+    user_id
+    company_id
+    status
+    default_branch_id
+    deleted_at
+  }
+}
+
+// ============================================================================
+// 2. COMPANY + BRANCH + LOCATION + CONTACTS
+// ============================================================================
+
+Table companies {
+  id char(36) [primary key]
+  name varchar(255) [not null]
+  slug varchar(255) [unique, not null]
+  description text
+  logo_media_id char(36)
+  website_url varchar(500)
+  timezone varchar(50) [default: 'UTC', not null]
+  default_currency varchar(3) [default: 'USD', not null]
+  status company_status [default: 'active', not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    slug [unique]
+    status
+    deleted_at
+  }
+}
+
+Table branches {
+  id char(36) [primary key]
+  company_id char(36) [not null]
+  name varchar(255) [not null]
+  slug varchar(255) [not null]
+  description text
+  address_line1 varchar(255) [not null]
+  address_line2 varchar(255)
+  city varchar(100) [not null]
+  state varchar(100)
+  postal_code varchar(20)
+  country varchar(100) [not null]
+  latitude decimal(10, 8) [not null]
+  longitude decimal(11, 8) [not null]
+  timezone varchar(50) [default: 'UTC', not null]
+  status branch_status [default: 'active', not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (company_id, slug) [unique]
+    company_id
+    (latitude, longitude)
+    city
+    postal_code
+    status
+    deleted_at
+  }
+  
+  Note: 'Use spatial index (SPATIAL INDEX) on (latitude, longitude) for MySQL 8 location searches if needed.'
+}
+
+Table branch_contacts {
+  id char(36) [primary key]
+  branch_id char(36) [not null]
+  contact_type contact_type [not null]
+  contact_value varchar(255) [not null]
+  is_primary boolean [default: false, not null]
+  label varchar(100) // 'Main Office', 'Reception', etc.
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    branch_id
+    contact_type
+    is_primary
+    deleted_at
+  }
+}
+
+Table branch_amenities {
+  id char(36) [primary key]
+  branch_id char(36) [not null]
+  name varchar(255) [not null]
+  description text
+  icon_name varchar(100)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    branch_id
+    deleted_at
+  }
+}
+
+Table branch_staff {
+  id char(36) [primary key]
+  branch_id char(36) [not null]
+  user_id char(36) [not null]
+  position varchar(100)
+  is_manager boolean [default: false, not null]
+  assigned_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  assigned_by char(36) [not null]
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (branch_id, user_id) [unique]
+    branch_id
+    user_id
+    is_active
+    deleted_at
+  }
+}
+
+// ============================================================================
+// 3. COURTS + FEATURES + AVAILABILITY + CLOSURES
+// ============================================================================
+
+Table courts {
+  id char(36) [primary key]
+  branch_id char(36) [not null]
+  name varchar(255) [not null]
+  court_number varchar(50)
+  court_type varchar(50) [default: 'pickleball', not null]
+  surface_type surface_type
+  description text
+  capacity integer [default: 4, not null]
+  has_lights boolean [default: false, not null]
+  hourly_rate decimal(10, 2) [not null]
+  status court_status [default: 'active', not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (branch_id, name) [unique]
+    (branch_id, court_number) [unique]
+    branch_id
+    court_type
+    status
+    deleted_at
+  }
+}
+
+Table court_features {
+  id char(36) [primary key]
+  court_id char(36) [not null]
+  feature_name varchar(100) [not null]
+  feature_value varchar(255)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (court_id, feature_name) [unique]
+    court_id
+    deleted_at
+  }
+}
+
+Table branch_business_hours {
+  id char(36) [primary key]
+  branch_id char(36) [not null]
+  day_of_week integer [not null] // 0=Sunday, 1=Monday, ..., 6=Saturday
+  open_time time [not null]
+  close_time time [not null]
+  is_closed boolean [default: false, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (branch_id, day_of_week) [unique]
+    branch_id
+    deleted_at
+  }
+}
+
+Table branch_special_hours {
+  id char(36) [primary key]
+  branch_id char(36) [not null]
+  date date [not null]
+  open_time time
+  close_time time
+  is_closed boolean [default: false, not null]
+  reason varchar(255)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (branch_id, date) [unique]
+    branch_id
+    date
+    deleted_at
+  }
+}
+
+Table resource_blocks {
+  id char(36) [primary key]
+  branch_id char(36) [not null]
+  court_id char(36) // null = all courts at branch
+  block_type block_type [not null]
+  start_datetime timestamp [not null]
+  end_datetime timestamp [not null]
+  reason varchar(255)
+  description text
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    branch_id
+    court_id
+    (court_id, start_datetime, end_datetime)
+    block_type
+    is_active
+    deleted_at
+  }
+}
+
+Table court_rate_rules {
+  id char(36) [primary key]
+  branch_id char(36) [not null]
+  court_id char(36) // null = applies to all courts at branch
+  day_of_week integer // 0=Sunday, 1=Monday, ..., 6=Saturday, null = all days
+  start_time time [not null]
+  end_time time [not null]
+  rate_per_hour decimal(10, 2) [not null]
+  applies_to_members boolean [default: false, not null] // true = member pricing, false = non-member
+  membership_plan_id char(36) // null = all members, not null = specific plan tier
+  valid_from date [not null]
+  valid_until date
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    branch_id
+    court_id
+    day_of_week
+    (court_id, day_of_week, start_time, end_time)
+    applies_to_members
+    membership_plan_id
+    (valid_from, valid_until)
+    is_active
+    deleted_at
+  ]
+  
+  Note: 'Pricing rules support peak/off-peak, weekday/weekend, member vs non-member, and special event pricing. Rules are evaluated in priority order (most specific first).'
+}
+
+Table court_time_slots {
+  id char(36) [primary key]
+  court_id char(36) [not null]
+  slot_start_datetime timestamp [not null]
+  slot_end_datetime timestamp [not null]
+  booking_item_id char(36) // null = available, not null = booked
+  is_locked boolean [default: false, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (court_id, slot_start_datetime) [unique]
+    court_id
+    slot_start_datetime
+    slot_end_datetime
+    booking_item_id
+    is_locked
+    deleted_at
+  ]
+  
+  Note: 'Optional enhancement for stronger double-booking prevention. Generate time slots (e.g., 30-min intervals) per court. Unique constraint on (court_id, slot_start_datetime) prevents double booking at DB level. Set booking_item_id when slot is reserved.'
+}
+
+// ============================================================================
+// 4. BOOKING (CORE)
+// ============================================================================
+
+Table bookings {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  company_id char(36) [not null]
+  branch_id char(36) [not null]
+  booking_number varchar(50) [unique, not null]
+  booking_status booking_status [default: 'pending', not null]
+  booking_source booking_source [default: 'customer_web', not null]
+  subtotal decimal(10, 2) [not null]
+  discount_amount decimal(10, 2) [default: 0, not null]
+  tax_amount decimal(10, 2) [default: 0, not null]
+  fee_amount decimal(10, 2) [default: 0, not null]
+  total_amount decimal(10, 2) [not null]
+  currency varchar(3) [default: 'USD', not null]
+  payment_status payment_status [default: 'pending', not null]
+  notes text
+  cancelled_at timestamp
+  cancelled_by char(36)
+  cancellation_reason text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    booking_number [unique]
+    user_id
+    company_id
+    branch_id
+    booking_status
+    payment_status
+    created_at
+    deleted_at
+  }
+}
+
+Table booking_items {
+  id char(36) [primary key]
+  booking_id char(36) [not null]
+  company_id char(36) [not null]
+  branch_id char(36) [not null]
+  court_id char(36) [not null]
+  service_id char(36) [not null]
+  start_datetime timestamp [not null]
+  end_datetime timestamp [not null]
+  duration_minutes integer [not null]
+  unit_price decimal(10, 2) [not null]
+  quantity integer [default: 1, not null]
+  subtotal decimal(10, 2) [not null]
+  discount_amount decimal(10, 2) [default: 0, not null]
+  total_amount decimal(10, 2) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    booking_id
+    company_id
+    branch_id
+    court_id
+    service_id
+    (court_id, start_datetime, end_datetime)
+    start_datetime
+    end_datetime
+    deleted_at
+  }
+  
+  Note: 'Double-booking prevention: Use application-level locking (SELECT FOR UPDATE) on court_id within a transaction when checking availability. Alternatively, use a separate court_reservation_locks table with row-level locks. MySQL does not natively support exclusion constraints for overlapping time ranges, so enforce via application logic with proper transaction isolation.'
+}
+
+Table court_reservation_locks {
+  id char(36) [primary key]
+  court_id char(36) [not null]
+  start_datetime timestamp [not null]
+  end_datetime timestamp [not null]
+  booking_item_id char(36)
+  lock_token varchar(255) [unique, not null]
+  expires_at timestamp [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+
+  indexes {
+    (court_id, start_datetime, end_datetime)
+    court_id
+    lock_token [unique]
+    expires_at
+  }
+  
+  Note: 'Helper table for double-booking prevention. Insert lock before creating booking_item, then delete after commit. Expired locks can be cleaned up periodically.'
+}
+
+Table booking_participants {
+  id char(36) [primary key]
+  booking_id char(36) [not null]
+  user_id char(36) // null if guest
+  guest_name varchar(255) // used if user_id is null
+  guest_email varchar(255)
+  guest_phone varchar(20)
+  is_primary boolean [default: false, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    booking_id
+    user_id
+    deleted_at
+  }
+}
+
+Table booking_change_log {
+  id char(36) [primary key]
+  booking_id char(36) [not null]
+  change_type varchar(50) [not null] // 'created', 'confirmed', 'cancelled', 'rescheduled', 'status_changed'
+  old_value json
+  new_value json
+  changed_by char(36) [not null]
+  reason text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+
+  indexes {
+    booking_id
+    changed_by
+    created_at
+  }
+}
+
+Table booking_waitlist {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  company_id char(36) [not null]
+  branch_id char(36) [not null]
+  court_id char(36) [not null]
+  requested_start_datetime timestamp [not null]
+  requested_end_datetime timestamp [not null]
+  priority integer [default: 0, not null] // higher = higher priority
+  status varchar(50) [default: 'pending', not null] // 'pending', 'notified', 'booked', 'expired', 'cancelled'
+  notified_at timestamp
+  expires_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    user_id
+    company_id
+    branch_id
+    court_id
+    status
+    (court_id, requested_start_datetime, requested_end_datetime)
+    priority
+    expires_at
+    deleted_at
+  }
+}
+
+Table groups {
+  id char(36) [primary key]
+  company_id char(36) [not null]
+  name varchar(255) [not null]
+  description text
+  created_by_user_id char(36) [not null]
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    company_id
+    created_by_user_id
+    is_active
+    deleted_at
+  }
+}
+
+Table group_members {
+  id char(36) [primary key]
+  group_id char(36) [not null]
+  user_id char(36) [not null]
+  role varchar(50) [default: 'member', not null] // 'owner', 'admin', 'member'
+  joined_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (group_id, user_id) [unique]
+    group_id
+    user_id
+    is_active
+    deleted_at
+  }
+}
+
+Table group_bookings {
+  id char(36) [primary key]
+  group_id char(36) [not null]
+  booking_id char(36) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (group_id, booking_id) [unique]
+    group_id
+    booking_id
+    deleted_at
+  }
+}
+
+Table tax_rates {
+  id char(36) [primary key]
+  company_id char(36) [not null]
+  branch_id char(36) // null = company-wide, not null = branch-specific
+  name varchar(255) [not null]
+  rate_percentage decimal(5, 4) [not null] // e.g., 0.0825 for 8.25%
+  tax_type varchar(50) [not null] // 'sales_tax', 'vat', 'gst', 'service_tax', etc.
+  applies_to varchar(50) [default: 'all', not null] // 'all', 'bookings', 'memberships', 'services'
+  is_active boolean [default: true, not null]
+  valid_from date [not null]
+  valid_until date
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    company_id
+    branch_id
+    tax_type
+    applies_to
+    (valid_from, valid_until)
+    is_active
+    deleted_at
+  }
+}
+
+// ============================================================================
+// 5. SERVICES CATALOG
+// ============================================================================
+
+Table services {
+  id char(36) [primary key]
+  company_id char(36) [not null]
+  name varchar(255) [not null]
+  service_type service_type [not null]
+  description text
+  base_price decimal(10, 2)
+  currency varchar(3) [default: 'USD', not null]
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    company_id
+    (company_id, name) [unique]
+    service_type
+    is_active
+    deleted_at
+  }
+}
+
+Table service_branch_availability {
+  id char(36) [primary key]
+  service_id char(36) [not null]
+  branch_id char(36) [not null]
+  is_available boolean [default: true, not null]
+  price_override decimal(10, 2)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (service_id, branch_id) [unique]
+    service_id
+    branch_id
+    is_available
+    deleted_at
+  }
+}
+
+// ============================================================================
+// 6. MEMBERSHIPS + SUBSCRIPTIONS + USAGE
+// ============================================================================
+
+Table membership_plans {
+  id char(36) [primary key]
+  company_id char(36) [not null]
+  branch_id char(36) // null = company-wide, not null = branch-specific
+  service_id char(36) [not null]
+  name varchar(255) [not null]
+  description text
+  plan_type membership_plan_type [not null]
+  plan_scope membership_plan_scope [not null]
+  billing_type membership_billing_type [not null]
+  billing_cycle_days integer // for monthly/annual
+  price decimal(10, 2) [not null]
+  currency varchar(3) [default: 'USD', not null]
+  max_active_per_user integer [default: 1, not null] // max active subscriptions per user for this plan
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    company_id
+    branch_id
+    service_id
+    (company_id, branch_id, name) [unique]
+    plan_type
+    plan_scope
+    is_active
+    deleted_at
+  ]
+  
+  Note: 'Scope rules: if plan_scope=company_wide, branch_id must be NULL. if plan_scope=branch_specific, branch_id must be NOT NULL. Enforce via application logic or CHECK constraint if MySQL 8.0.16+. plan_type: recurring (monthly/annual), prepaid_pass (fixed number of uses), credits (wallet-style). max_active_per_user typically 1 for recurring, unlimited for prepaid/credits.'
+}
+
+Table membership_plan_benefits {
+  id char(36) [primary key]
+  membership_plan_id char(36) [not null]
+  benefit_type varchar(50) [not null] // 'discount_percentage', 'free_hours', 'free_bookings', 'priority_booking_window_minutes', 'credits'
+  benefit_value decimal(10, 2) [not null]
+  max_per_period integer // null = unlimited
+  description text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    membership_plan_id
+    benefit_type
+    deleted_at
+  }
+}
+
+Table customer_memberships {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  membership_plan_id char(36) [not null]
+  company_id char(36) [not null]
+  branch_id char(36) // null = company-wide, not null = branch-specific
+  status membership_status [default: 'active', not null]
+  start_date date [not null]
+  end_date date
+  auto_renew boolean [default: true, not null]
+  next_billing_date date
+  trial_ends_at timestamp
+  cancelled_at timestamp
+  cancelled_by char(36)
+  cancellation_reason text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (user_id, membership_plan_id, status) [unique]
+    user_id
+    membership_plan_id
+    company_id
+    branch_id
+    status
+    start_date
+    end_date
+    next_billing_date
+    deleted_at
+  }
+  
+  Note: 'Prevent duplicate active memberships per user per plan. Enforce via unique index on (user_id, membership_plan_id, status) where status IN (active, trialing). For recurring plans, typically max 1 active per user. For prepaid_pass and credits plans, multiple active subscriptions may be allowed (controlled by membership_plans.max_active_per_user).'
+}
+
+Table membership_cycles {
+  id char(36) [primary key]
+  customer_membership_id char(36) [not null]
+  cycle_number integer [not null]
+  period_start_date date [not null]
+  period_end_date date [not null]
+  billing_date date [not null]
+  amount decimal(10, 2) [not null]
+  discount_amount decimal(10, 2) [default: 0, not null]
+  tax_amount decimal(10, 2) [default: 0, not null]
+  total_amount decimal(10, 2) [not null]
+  payment_status payment_status [default: 'pending', not null]
+  invoice_id char(36)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    customer_membership_id
+    (customer_membership_id, cycle_number) [unique]
+    billing_date
+    payment_status
+    invoice_id
+    deleted_at
+  }
+}
+
+Table membership_usage_ledger {
+  id char(36) [primary key]
+  customer_membership_id char(36) [not null]
+  booking_id char(36)
+  benefit_type varchar(50) [not null] // 'discount_applied', 'free_hour_used', 'credit_consumed', etc.
+  amount decimal(10, 2) [not null]
+  quantity integer [default: 1, not null]
+  description text
+  period_start_date date
+  period_end_date date
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    customer_membership_id
+    booking_id
+    benefit_type
+    (period_start_date, period_end_date)
+    created_at
+    deleted_at
+  }
+}
+
+// ============================================================================
+// 7. DISCOUNTS / CAMPAIGNS / PROMO CODES
+// ============================================================================
+
+Table campaigns {
+  id char(36) [primary key]
+  company_id char(36) [not null]
+  branch_id char(36) // null = company-wide, not null = branch-specific
+  name varchar(255) [not null]
+  description text
+  discount_type campaign_discount_type [not null]
+  discount_value decimal(10, 2) [not null]
+  min_purchase_amount decimal(10, 2)
+  max_discount_amount decimal(10, 2)
+  applicability campaign_applicability [not null]
+  service_id char(36) // null = all services, not null = specific service
+  start_date date [not null]
+  end_date date [not null]
+  day_of_week_mask integer // bitmask: 1=Sunday, 2=Monday, ..., 64=Saturday, null = all days
+  time_window_start time
+  time_window_end time
+  usage_limit_per_user integer // null = unlimited
+  total_usage_limit integer // null = unlimited
+  current_usage_count integer [default: 0, not null]
+  can_stack_with_membership boolean [default: false, not null]
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    company_id
+    branch_id
+    service_id
+    (start_date, end_date)
+    is_active
+    applicability
+    deleted_at
+  }
+}
+
+Table campaign_rules {
+  id char(36) [primary key]
+  campaign_id char(36) [not null]
+  rule_type varchar(50) [not null] // 'court_id', 'user_segment', 'min_booking_duration', etc.
+  rule_value varchar(255) [not null]
+  operator varchar(20) [default: 'equals', not null] // 'equals', 'in', 'greater_than', etc.
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    campaign_id
+    rule_type
+    deleted_at
+  }
+}
+
+Table promo_codes {
+  id char(36) [primary key]
+  campaign_id char(36) [not null]
+  company_id char(36) [not null]
+  code varchar(50) [not null]
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (company_id, code) [unique]
+    campaign_id
+    company_id
+    code
+    is_active
+    deleted_at
+  ]
+}
+
+Table discount_applications {
+  id char(36) [primary key]
+  campaign_id char(36) [not null]
+  promo_code_id char(36)
+  user_id char(36) [not null]
+  booking_id char(36)
+  customer_membership_id char(36)
+  discount_amount decimal(10, 2) [not null]
+  applied_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    campaign_id
+    promo_code_id
+    user_id
+    booking_id
+    customer_membership_id
+    applied_at
+    deleted_at
+  }
+}
+
+// ============================================================================
+// 8. PAYMENTS, INVOICES, REFUNDS, WALLET
+// ============================================================================
+
+Table payments {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  company_id char(36) [not null]
+  booking_id char(36)
+  invoice_id char(36)
+  membership_cycle_id char(36)
+  amount decimal(10, 2) [not null]
+  currency varchar(3) [default: 'USD', not null]
+  payment_method payment_method [not null]
+  payment_status payment_status [default: 'pending', not null]
+  provider varchar(50) // 'stripe', 'paypal', 'square', etc.
+  provider_transaction_id varchar(255)
+  provider_metadata json
+  failure_reason text
+  paid_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    user_id
+    company_id
+    booking_id
+    invoice_id
+    membership_cycle_id
+    payment_status
+    provider_transaction_id
+    paid_at
+    deleted_at
+  }
+}
+
+Table payment_attempts {
+  id char(36) [primary key]
+  payment_id char(36) [not null]
+  attempt_number integer [not null]
+  amount decimal(10, 2) [not null]
+  payment_method payment_method [not null]
+  status payment_status [default: 'pending', not null]
+  provider_response json
+  failure_reason text
+  attempted_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    payment_id
+    (payment_id, attempt_number) [unique]
+    status
+    attempted_at
+    deleted_at
+  }
+}
+
+Table refunds {
+  id char(36) [primary key]
+  payment_id char(36) [not null]
+  company_id char(36) [not null]
+  amount decimal(10, 2) [not null]
+  currency varchar(3) [default: 'USD', not null]
+  refund_status refund_status [default: 'pending', not null]
+  reason text
+  provider_refund_id varchar(255)
+  provider_metadata json
+  processed_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    payment_id
+    company_id
+    refund_status
+    provider_refund_id
+    processed_at
+    deleted_at
+  }
+}
+
+Table invoices {
+  id char(36) [primary key]
+  invoice_number varchar(50) [unique, not null]
+  user_id char(36) [not null]
+  company_id char(36) [not null]
+  branch_id char(36)
+  invoice_status invoice_status [default: 'draft', not null]
+  subtotal decimal(10, 2) [not null]
+  tax_amount decimal(10, 2) [default: 0, not null]
+  discount_amount decimal(10, 2) [default: 0, not null]
+  total_amount decimal(10, 2) [not null]
+  currency varchar(3) [default: 'USD', not null]
+  due_date date
+  issued_at timestamp
+  paid_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    invoice_number [unique]
+    user_id
+    company_id
+    branch_id
+    invoice_status
+    due_date
+    deleted_at
+  }
+}
+
+Table invoice_items {
+  id char(36) [primary key]
+  invoice_id char(36) [not null]
+  item_type varchar(50) [not null] // 'booking', 'membership', 'service', etc.
+  item_reference_id char(36) // booking_id, membership_cycle_id, etc.
+  description varchar(500) [not null]
+  quantity integer [default: 1, not null]
+  unit_price decimal(10, 2) [not null]
+  discount_amount decimal(10, 2) [default: 0, not null]
+  tax_amount decimal(10, 2) [default: 0, not null]
+  total_amount decimal(10, 2) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    invoice_id
+    item_type
+    item_reference_id
+    deleted_at
+  }
+}
+
+Table customer_wallet_ledger {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  company_id char(36) [not null]
+  transaction_type varchar(50) [not null] // 'credit', 'debit', 'refund', 'expiration'
+  amount decimal(10, 2) [not null]
+  balance_after decimal(10, 2) [not null]
+  reference_type varchar(50) // 'payment', 'refund', 'promotion', 'manual_adjustment', 'gift_card'
+  reference_id char(36)
+  description text
+  expires_at timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    user_id
+    company_id
+    transaction_type
+    (user_id, company_id, created_at)
+    expires_at
+    deleted_at
+  }
+}
+
+Table gift_cards {
+  id char(36) [primary key]
+  company_id char(36) [not null]
+  code varchar(50) [not null]
+  initial_amount decimal(10, 2) [not null]
+  current_balance decimal(10, 2) [not null]
+  currency varchar(3) [default: 'USD', not null]
+  status gift_card_status [default: 'active', not null]
+  expires_at timestamp
+  purchased_by_user_id char(36)
+  assigned_to_user_id char(36)
+  purchase_payment_id char(36)
+  notes text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (company_id, code) [unique]
+    company_id
+    code
+    status
+    purchased_by_user_id
+    assigned_to_user_id
+    expires_at
+    deleted_at
+  }
+}
+
+Table gift_card_redemptions {
+  id char(36) [primary key]
+  gift_card_id char(36) [not null]
+  wallet_ledger_id char(36) [not null]
+  booking_id char(36)
+  membership_cycle_id char(36)
+  amount_used decimal(10, 2) [not null]
+  redeemed_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    gift_card_id
+    wallet_ledger_id
+    booking_id
+    membership_cycle_id
+    redeemed_at
+    deleted_at
+  }
+}
+
+// ============================================================================
+// 9. NOTIFICATIONS
+// ============================================================================
+
+Table notification_templates {
+  id char(36) [primary key]
+  company_id char(36)
+  template_name varchar(100) [not null]
+  notification_type varchar(50) [not null] // 'booking_confirmation', 'reminder', 'membership_renewal', etc.
+  channel notification_channel [not null]
+  subject varchar(255)
+  body_template text [not null]
+  variables json // available template variables
+  is_active boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    company_id
+    (company_id, template_name) [unique]
+    notification_type
+    channel
+    is_active
+    deleted_at
+  }
+}
+
+Table notifications_outbox {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  template_id char(36)
+  notification_type varchar(50) [not null]
+  channel notification_channel [not null]
+  recipient_email varchar(255)
+  recipient_phone varchar(20)
+  subject varchar(255)
+  body text [not null]
+  status notification_status [default: 'pending', not null]
+  scheduled_at timestamp
+  sent_at timestamp
+  delivered_at timestamp
+  failure_reason text
+  retry_count integer [default: 0, not null]
+  max_retries integer [default: 3, not null]
+  metadata json
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    user_id
+    template_id
+    status
+    channel
+    scheduled_at
+    sent_at
+    deleted_at
+  }
+}
+
+Table notification_delivery_logs {
+  id char(36) [primary key]
+  notification_id char(36) [not null]
+  provider varchar(50)
+  provider_message_id varchar(255)
+  status notification_status [not null]
+  response_metadata json
+  logged_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    notification_id
+    provider_message_id
+    status
+    logged_at
+    deleted_at
+  }
+}
+
+Table user_notification_preferences {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  notification_type varchar(50) [not null]
+  channel notification_channel [not null]
+  is_enabled boolean [default: true, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (user_id, notification_type, channel) [unique]
+    user_id
+    notification_type
+    channel
+    deleted_at
+  }
+}
+
+// ============================================================================
+// 10. REVIEWS + SUPPORT
+// ============================================================================
+
+Table reviews {
+  id char(36) [primary key]
+  user_id char(36) [not null]
+  company_id char(36)
+  branch_id char(36)
+  court_id char(36)
+  service_id char(36)
+  booking_id char(36)
+  rating integer [not null] // 1-5
+  title varchar(255)
+  comment text
+  status review_status [default: 'pending', not null]
+  helpful_count integer [default: 0, not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    user_id
+    company_id
+    branch_id
+    court_id
+    service_id
+    booking_id
+    rating
+    status
+    created_at
+    deleted_at
+  }
+}
+
+Table support_tickets {
+  id char(36) [primary key]
+  ticket_number varchar(50) [unique, not null]
+  user_id char(36) [not null]
+  company_id char(36)
+  branch_id char(36)
+  booking_id char(36)
+  subject varchar(255) [not null]
+  status ticket_status [default: 'open', not null]
+  priority ticket_priority [default: 'medium', not null]
+  assigned_to char(36)
+  resolved_at timestamp
+  resolved_by char(36)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    ticket_number [unique]
+    user_id
+    company_id
+    branch_id
+    booking_id
+    status
+    priority
+    assigned_to
+    created_at
+    deleted_at
+  }
+}
+
+Table support_ticket_messages {
+  id char(36) [primary key]
+  ticket_id char(36) [not null]
+  user_id char(36) [not null]
+  message text [not null]
+  is_internal boolean [default: false, not null]
+  attachments json
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36) [not null]
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    ticket_id
+    user_id
+    created_at
+    deleted_at
+  }
+}
+
+// ============================================================================
+// 11. AUDIT LOGGING
+// ============================================================================
+
+Table audit_logs {
+  id char(36) [primary key]
+  actor_user_id char(36) [not null]
+  action audit_action [not null]
+  entity_type varchar(100) [not null]
+  entity_id char(36) [not null]
+  before_snapshot json
+  after_snapshot json
+  ip_address varchar(45)
+  user_agent text
+  metadata json
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+
+  indexes {
+    actor_user_id
+    action
+    entity_type
+    entity_id
+    (entity_type, entity_id)
+    created_at
+  }
+}
+
+// ============================================================================
+// 12. IMAGES / MEDIA
+// ============================================================================
+
+Table media_files {
+  id char(36) [primary key]
+  owner_type media_owner_type [not null]
+  owner_id char(36) [not null]
+  storage_mode media_storage_mode [default: 'db_blob', not null]
+  file_name varchar(255) [not null]
+  content_type varchar(100) [not null]
+  file_ext varchar(10)
+  file_size_bytes bigint [not null]
+  checksum_sha256 varchar(64) [unique]
+  width integer
+  height integer
+  url varchar(500) // for external_url mode
+  blob_data longblob // required when storage_mode = 'db_blob'
+  is_primary boolean [default: false, not null]
+  sort_order integer [default: 0, not null]
+  metadata json
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    (owner_type, owner_id)
+    (owner_type, owner_id, is_primary)
+    checksum_sha256 [unique]
+    storage_mode
+    content_type
+    deleted_at
+  }
+  
+  Note: 'Enforce single primary per owner via application logic: unique constraint on (owner_type, owner_id, is_primary) where is_primary=true is not directly supported in MySQL. Use application-level validation or a separate unique index with a filtered approach.'
+}
+
+Table media_variants {
+  id char(36) [primary key]
+  media_file_id char(36) [not null]
+  variant_type media_variant_type [not null]
+  file_name varchar(255) [not null]
+  content_type varchar(100) [not null]
+  file_size_bytes bigint [not null]
+  width integer
+  height integer
+  blob_data longblob [not null]
+  checksum_sha256 varchar(64) [unique]
+  metadata json
+  created_at timestamp [default: `CURRENT_TIMESTAMP`, not null]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, not null]
+  created_by char(36)
+  updated_by char(36)
+  deleted_at timestamp
+
+  indexes {
+    media_file_id
+    (media_file_id, variant_type) [unique]
+    variant_type
+    checksum_sha256 [unique]
+    deleted_at
+  }
+}
+
+// ============================================================================
+// FOREIGN KEY RELATIONSHIPS
+// ============================================================================
+
+Ref: users.id < user_roles.user_id
+Ref: roles.id < user_roles.role_id
+Ref: companies.id < user_roles.company_id
+Ref: branches.id < user_roles.branch_id
+Ref: users.id < user_roles.assigned_by
+Ref: roles.id < role_permissions.role_id
+Ref: permissions.id < role_permissions.permission_id
+
+Ref: users.id < auth_identities.user_id
+Ref: users.id < auth_sessions.user_id
+Ref: users.id < otp_codes.user_id
+Ref: users.id < company_customers.user_id
+Ref: companies.id < company_customers.company_id
+Ref: branches.id < company_customers.default_branch_id
+
+Ref: users.id < companies.created_by
+Ref: users.id < companies.updated_by
+Ref: media_files.id < companies.logo_media_id
+Ref: companies.id < branches.company_id
+Ref: users.id < branches.created_by
+Ref: users.id < branches.updated_by
+Ref: branches.id < branch_contacts.branch_id
+Ref: branches.id < branch_amenities.branch_id
+Ref: branches.id < branch_staff.branch_id
+Ref: users.id < branch_staff.user_id
+Ref: users.id < branch_staff.assigned_by
+
+Ref: branches.id < courts.branch_id
+Ref: users.id < courts.created_by
+Ref: users.id < courts.updated_by
+Ref: courts.id < court_features.court_id
+Ref: branches.id < branch_business_hours.branch_id
+Ref: branches.id < branch_special_hours.branch_id
+Ref: branches.id < resource_blocks.branch_id
+Ref: courts.id < resource_blocks.court_id
+Ref: users.id < resource_blocks.created_by
+Ref: users.id < resource_blocks.updated_by
+Ref: branches.id < court_rate_rules.branch_id
+Ref: courts.id < court_rate_rules.court_id
+Ref: membership_plans.id < court_rate_rules.membership_plan_id
+Ref: users.id < court_rate_rules.created_by
+Ref: users.id < court_rate_rules.updated_by
+Ref: companies.id < tax_rates.company_id
+Ref: branches.id < tax_rates.branch_id
+Ref: users.id < tax_rates.created_by
+Ref: users.id < tax_rates.updated_by
+
+Ref: users.id < bookings.user_id
+Ref: companies.id < bookings.company_id
+Ref: branches.id < bookings.branch_id
+Ref: users.id < bookings.cancelled_by
+Ref: bookings.id < booking_items.booking_id
+Ref: companies.id < booking_items.company_id
+Ref: branches.id < booking_items.branch_id
+Ref: courts.id < booking_items.court_id
+Ref: services.id < booking_items.service_id
+Ref: booking_items.id < court_reservation_locks.booking_item_id
+Ref: courts.id < court_reservation_locks.court_id
+Ref: courts.id < court_time_slots.court_id
+Ref: booking_items.id < court_time_slots.booking_item_id
+Ref: bookings.id < booking_participants.booking_id
+Ref: users.id < booking_participants.user_id
+Ref: bookings.id < booking_change_log.booking_id
+Ref: users.id < booking_change_log.changed_by
+Ref: users.id < booking_waitlist.user_id
+Ref: companies.id < booking_waitlist.company_id
+Ref: branches.id < booking_waitlist.branch_id
+Ref: courts.id < booking_waitlist.court_id
+Ref: companies.id < groups.company_id
+Ref: users.id < groups.created_by_user_id
+Ref: groups.id < group_members.group_id
+Ref: users.id < group_members.user_id
+Ref: groups.id < group_bookings.group_id
+Ref: bookings.id < group_bookings.booking_id
+
+Ref: companies.id < services.company_id
+Ref: users.id < services.created_by
+Ref: users.id < services.updated_by
+Ref: services.id < service_branch_availability.service_id
+Ref: branches.id < service_branch_availability.branch_id
+
+Ref: companies.id < membership_plans.company_id
+Ref: branches.id < membership_plans.branch_id
+Ref: services.id < membership_plans.service_id
+Ref: users.id < membership_plans.created_by
+Ref: users.id < membership_plans.updated_by
+Ref: membership_plans.id < membership_plan_benefits.membership_plan_id
+Ref: users.id < customer_memberships.user_id
+Ref: membership_plans.id < customer_memberships.membership_plan_id
+Ref: companies.id < customer_memberships.company_id
+Ref: branches.id < customer_memberships.branch_id
+Ref: users.id < customer_memberships.cancelled_by
+Ref: customer_memberships.id < membership_cycles.customer_membership_id
+Ref: invoices.id < membership_cycles.invoice_id
+Ref: customer_memberships.id < membership_usage_ledger.customer_membership_id
+Ref: bookings.id < membership_usage_ledger.booking_id
+
+Ref: companies.id < campaigns.company_id
+Ref: branches.id < campaigns.branch_id
+Ref: services.id < campaigns.service_id
+Ref: users.id < campaigns.created_by
+Ref: users.id < campaigns.updated_by
+Ref: campaigns.id < campaign_rules.campaign_id
+Ref: campaigns.id < promo_codes.campaign_id
+Ref: companies.id < promo_codes.company_id
+Ref: campaigns.id < discount_applications.campaign_id
+Ref: promo_codes.id < discount_applications.promo_code_id
+Ref: users.id < discount_applications.user_id
+Ref: bookings.id < discount_applications.booking_id
+Ref: customer_memberships.id < discount_applications.customer_membership_id
+
+Ref: users.id < payments.user_id
+Ref: companies.id < payments.company_id
+Ref: bookings.id < payments.booking_id
+Ref: invoices.id < payments.invoice_id
+Ref: membership_cycles.id < payments.membership_cycle_id
+Ref: payments.id < payment_attempts.payment_id
+Ref: payments.id < refunds.payment_id
+Ref: companies.id < refunds.company_id
+Ref: users.id < invoices.user_id
+Ref: companies.id < invoices.company_id
+Ref: branches.id < invoices.branch_id
+Ref: invoices.id < invoice_items.invoice_id
+Ref: users.id < customer_wallet_ledger.user_id
+Ref: companies.id < customer_wallet_ledger.company_id
+Ref: companies.id < gift_cards.company_id
+Ref: users.id < gift_cards.purchased_by_user_id
+Ref: users.id < gift_cards.assigned_to_user_id
+Ref: payments.id < gift_cards.purchase_payment_id
+Ref: gift_cards.id < gift_card_redemptions.gift_card_id
+Ref: customer_wallet_ledger.id < gift_card_redemptions.wallet_ledger_id
+Ref: bookings.id < gift_card_redemptions.booking_id
+Ref: membership_cycles.id < gift_card_redemptions.membership_cycle_id
+
+Ref: companies.id < notification_templates.company_id
+Ref: users.id < notifications_outbox.user_id
+Ref: notification_templates.id < notifications_outbox.template_id
+Ref: notifications_outbox.id < notification_delivery_logs.notification_id
+
+Ref: users.id < reviews.user_id
+Ref: companies.id < reviews.company_id
+Ref: branches.id < reviews.branch_id
+Ref: courts.id < reviews.court_id
+Ref: services.id < reviews.service_id
+Ref: bookings.id < reviews.booking_id
+Ref: users.id < support_tickets.user_id
+Ref: companies.id < support_tickets.company_id
+Ref: branches.id < support_tickets.branch_id
+Ref: bookings.id < support_tickets.booking_id
+Ref: users.id < support_tickets.assigned_to
+Ref: users.id < support_tickets.resolved_by
+Ref: support_tickets.id < support_ticket_messages.ticket_id
+Ref: users.id < support_ticket_messages.user_id
+
+Ref: users.id < audit_logs.actor_user_id
+Ref: media_files.id < media_variants.media_file_id
