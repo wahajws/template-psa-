@@ -113,7 +113,7 @@ class ActivityService extends BaseService {
     const finalCount = (company_id || branch_id) ? enriched.length : count;
 
     return {
-      items: enriched,
+      items: filtered,
       total: finalCount,
       page,
       pageSize,

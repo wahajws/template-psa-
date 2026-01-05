@@ -10,7 +10,6 @@ class AuthController {
         action: 'signup',
         entity_type: 'auth',
         entity_id: user.id,
-        actor_user_id: user.id, // Use the newly created user as actor
         metadata: { email: user.email, phone: user.phone },
       });
       return success(res, { user }, 'User created successfully', 201);
@@ -27,7 +26,6 @@ class AuthController {
         action: 'login',
         entity_type: 'auth',
         entity_id: result.user.id,
-        actor_user_id: result.user.id, // Use the logged-in user as actor
         metadata: { identifier },
       });
       return success(res, result, 'Login successful');

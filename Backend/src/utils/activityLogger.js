@@ -1,4 +1,4 @@
-const { AuditLog, User } = require('../models');
+const { AuditLog } = require('../models');
 const { generateUUID } = require('./uuid');
 
 /**
@@ -47,39 +47,9 @@ class ActivityLogger {
       const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
       const PLACEHOLDER_ID = '00000000-0000-0000-0000-000000000001';
 
-      // Ensure system user exists for anonymous actions
-      let finalActorUserId = actor_user_id;
-      if (!finalActorUserId) {
-        let systemUser = await User.findByPk(SYSTEM_USER_ID);
-        if (!systemUser) {
-          // Create system user if it doesn't exist
-          try {
-            // Use null for created_by since system user is self-referential
-            systemUser = await User.create({
-              id: SYSTEM_USER_ID,
-              email: 'system@platform.com',
-              first_name: 'System',
-              last_name: 'User',
-              status: 'active',
-              created_by: null // System user doesn't have a creator
-            });
-          } catch (createError) {
-            // If creation fails, try to find it again (race condition)
-            systemUser = await User.findByPk(SYSTEM_USER_ID);
-            if (!systemUser) {
-              // If still doesn't exist, skip logging to avoid breaking the flow
-              console.warn('System user does not exist and could not be created. Skipping activity log.');
-              console.warn('Create error:', createError.message);
-              return;
-            }
-          }
-        }
-        finalActorUserId = SYSTEM_USER_ID;
-      }
-
       const logData = {
         id: generateUUID(),
-        actor_user_id: finalActorUserId,
+        actor_user_id: actor_user_id || SYSTEM_USER_ID, // Use system user ID for anonymous
         action: this.normalizeAction(action),
         entity_type,
         entity_id: entity_id || PLACEHOLDER_ID, // Use placeholder for null

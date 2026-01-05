@@ -63,7 +63,7 @@ async function logActivity(req, eventData) {
   } = req.activityContext;
 
   await ActivityLogger.logEvent({
-    actor_user_id: eventData.actor_user_id || actor_user_id, // Allow override from eventData
+    actor_user_id,
     company_id,
     branch_id,
     action: eventData.action,
@@ -86,5 +86,4 @@ module.exports = {
   activityContext,
   logActivity,
 };
-
 

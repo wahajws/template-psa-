@@ -2,7 +2,6 @@ const BaseService = require('../services/BaseService');
 const { success, error, paginated } = require('../utils/response');
 const { NotFoundError } = require('../utils/errors');
 const { logActivity } = require('../middlewares/activity');
-const { generateUUID } = require('../utils/uuid');
 
 class BaseController {
   constructor(service) {
@@ -40,12 +39,6 @@ class BaseController {
   async create(req, res, next) {
     try {
       const data = this.prepareCreateData(req);
-      
-      // Ensure ID is set and valid before creating
-      if (!data.id) {
-        data.id = generateUUID();
-      }
-      
       const record = await this.service.create(data);
       
       // Log activity for company creation
@@ -119,15 +112,6 @@ class BaseController {
   prepareCreateData(req) {
     const data = { ...req.body };
     
-    // Auto-generate ID if not provided or is null/empty (for models that use UUID primary keys)
-    // Remove id from data if it's null or empty, then generate a new one
-    if (data.id === null || data.id === '' || data.id === undefined) {
-      delete data.id;
-    }
-    if (!data.id) {
-      data.id = generateUUID();
-    }
-
     if (req.user) {
       data.created_by = req.user.id;
     }

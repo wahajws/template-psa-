@@ -13,15 +13,7 @@
     "test": "jest",
     "test:apis": "node scripts/test-apis.js",
     "seed:full": "node scripts/seed-comprehensive.js",
-    "import:csv": "node scripts/import-csv-data.js",
-    "generate:mock": "node ../generate-mock-data-complete.js",
-    "ensure-system-user": "node scripts/ensure-system-user.js",
-    "test:fixes": "node scripts/test-fixes.js",
-    "verify:startup": "node scripts/verify-startup.js",
-    "fix:all": "node scripts/fix-all-issues.js",
-    "test:api": "node scripts/test-api-endpoints.js",
-    "create-system-credentials": "node scripts/create-system-user-credentials.js",
-    "assign-system-admin": "node scripts/assign-admin-role-to-system-user.js"
+    "import:csv": "node scripts/import-csv-data.js"
   },
   "keywords": ["booking", "sports", "pickleball"],
   "author": "",
