@@ -3,7 +3,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const errorHandler = require('./src/middlewares/errorHandler');
-const logger = require('./src/config/logger');
 
 const authRoutes = require('./src/routes/auth');
 const companiesRoutes = require('./src/routes/companies');
@@ -25,27 +24,30 @@ const telemetryRoutes = require('./src/routes/telemetry');
 const behaviourRoutes = require('./src/routes/behaviour');
 const { activityContext } = require('./src/middlewares/activity');
 
-const app = express();
+const branchesRoutes = require('./src/routes/branches');
+const dashboardRoutes = require('./src/routes/dashboard');
+
+const app = express(); // ✅ MUST be before app.use
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(activityContext); // Add activity context to all requests
+app.use(activityContext);
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100
-});
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api/', limiter);
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+app.use('/api/dashboard', dashboardRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/me', sessionsRoutes);
+
 app.use('/api/companies', companiesRoutes);
+app.use('/api/companies/:companyId/branches', branchesRoutes); // ✅ branches
+
 app.use('/api/companies/:companyId/branches/:branchId/availability', availabilityRoutes);
 app.use('/api/companies/:companyId/bookings', bookingsRoutes);
 app.use('/api/companies/:companyId/memberships', membershipsRoutes);
@@ -56,6 +58,7 @@ app.use('/api/companies/:companyId/promos', promoCodesRoutes);
 app.use('/api/companies/:companyId/gift-cards', giftCardsRoutes);
 app.use('/api/companies/:companyId/reviews', reviewsRoutes);
 app.use('/api/companies/:companyId/support-tickets', supportTicketsRoutes);
+
 app.use('/api/me', walletRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/telemetry', telemetryRoutes);
@@ -65,4 +68,3 @@ app.use('/api/admin/behaviour', behaviourRoutes);
 app.use(errorHandler);
 
 module.exports = app;
-

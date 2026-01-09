@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (identifier, password) => {
     try {
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, {
-        identifier,
+        identifier: (identifier || '').trim(),
         password,
       });
 

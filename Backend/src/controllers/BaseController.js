@@ -2,6 +2,7 @@ const BaseService = require('../services/BaseService');
 const { success, error, paginated } = require('../utils/response');
 const { NotFoundError } = require('../utils/errors');
 const { logActivity } = require('../middlewares/activity');
+const { v4: uuidv4 } = require('uuid');
 
 class BaseController {
   constructor(service) {
@@ -37,25 +38,40 @@ class BaseController {
   }
 
   async create(req, res, next) {
-    try {
-      const data = this.prepareCreateData(req);
-      const record = await this.service.create(data);
-      
-      // Log activity for company creation
-      if (req.path && req.path.includes('/platform/companies')) {
-        await logActivity(req, {
-          action: 'company_created',
-          entity_type: 'company',
-          entity_id: record.id,
-          after_snapshot: record.toJSON ? record.toJSON() : record,
-        });
-      }
-      
-      return success(res, record, 'Created successfully', 201);
-    } catch (err) {
-      next(err);
+  try {
+    const data = this.prepareCreateData(req);
+
+    //Ensure primary key exists (CHAR(36) UUID)
+    if (!data.id) data.id = uuidv4();
+
+    //Auto-fill audit fields (your models have allowNull:false)
+    if (req.user?.id) {
+      if (!data.created_by) data.created_by = req.user.id;
+      if (!data.updated_by) data.updated_by = req.user.id;
     }
+
+    //Auto-fill company/branch from route params if missing
+    if (req.params?.companyId && !data.company_id) data.company_id = req.params.companyId;
+    if (req.params?.branchId && !data.branch_id) data.branch_id = req.params.branchId;
+
+    const record = await this.service.create(data);
+
+    // Log activity for company creation
+    if (req.path && req.path.includes('/platform/companies')) {
+      await logActivity(req, {
+        action: 'company_created',
+        entity_type: 'company',
+        entity_id: record.id,
+        after_snapshot: record.toJSON ? record.toJSON() : record,
+      });
+    }
+
+    return success(res, record, 'Created successfully', 201);
+  } catch (err) {
+    next(err);
   }
+}
+
 
   async update(req, res, next) {
     try {

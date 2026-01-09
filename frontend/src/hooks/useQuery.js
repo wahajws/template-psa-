@@ -20,6 +20,7 @@ export const useApiMutation = (endpoint, options = {}) => {
   return useMutation({
     mutationFn: async (data) => {
       const response = await apiClient.post(endpoint, data);
+      console.log(response.data);
       return response.data;
     },
     onSuccess: (data, variables, context) => {

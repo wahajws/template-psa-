@@ -1,185 +1,239 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+// src/components/layouts/BranchLayout.js
+import React, { useMemo, useState } from "react";
+import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  Box,
-  Drawer,
   AppBar,
   Toolbar,
+  Drawer,
   List,
-  Typography,
-  Divider,
-  IconButton,
-  ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Avatar,
+  Box,
+  Typography,
+  Divider,
+  IconButton,
   Menu,
   MenuItem,
-} from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  Contacts as ContactsIcon,
-  SportsTennis as CourtIcon,
-  Schedule as ScheduleIcon,
-  BookOnline as BookingIcon,
-  PhotoLibrary as MediaIcon,
-  AccountCircle as AccountCircleIcon,
-  Logout as LogoutIcon,
-} from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
-import { ROUTES } from '../../utils/constants';
+  Tooltip,
+  Avatar,
+  Chip,
+} from "@mui/material";
 
-const drawerWidth = 240;
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import BookingsIcon from "@mui/icons-material/Event";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import StaffIcon from "@mui/icons-material/Group";
+import ContactsIcon from "@mui/icons-material/Contacts";
+import CourtsIcon from "@mui/icons-material/SportsTennis";
+import HoursIcon from "@mui/icons-material/AccessTime";
+import MediaIcon from "@mui/icons-material/PhotoLibrary";
+import LogoutIcon from "@mui/icons-material/Logout";
+
+import { useAuth } from "../../contexts/AuthContext";
+// If you have constants, use them. If not, keep fallback routes below.
+import { ROUTES } from "../../utils/constants";
+
+const drawerWidth = 260;
+
+const fallbackBranchRoutes = {
+  DASHBOARD: (companyId, branchId) => `/branch/${companyId}/${branchId}/dashboard`,
+  BOOKINGS: (companyId, branchId) => `/branch/${companyId}/${branchId}/bookings`,
+  PAYMENTS: (companyId, branchId) => `/branch/${companyId}/${branchId}/payments`,
+  STAFF: (companyId, branchId) => `/branch/${companyId}/${branchId}/staff`,
+  CONTACTS: (companyId, branchId) => `/branch/${companyId}/${branchId}/contacts`,
+  COURTS: (companyId, branchId) => `/branch/${companyId}/${branchId}/courts`,
+  BUSINESS_HOURS: (companyId, branchId) => `/branch/${companyId}/${branchId}/business-hours`,
+  MEDIA: (companyId, branchId) => `/branch/${companyId}/${branchId}/media`,
+};
 
 export const BranchLayout = ({ children }) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const navigate = useNavigate();
+  const params = useParams();
   const location = useLocation();
-  const { companyId, branchId } = useParams();
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: ROUTES.BRANCH.DASHBOARD(companyId, branchId) },
-    { text: 'Contacts', icon: <ContactsIcon />, path: ROUTES.BRANCH.CONTACTS(companyId, branchId) },
-    { text: 'Courts', icon: <CourtIcon />, path: ROUTES.BRANCH.COURTS(companyId, branchId) },
-    { text: 'Business Hours', icon: <ScheduleIcon />, path: ROUTES.BRANCH.BUSINESS_HOURS(companyId, branchId) },
-    { text: 'Bookings', icon: <BookingIcon />, path: ROUTES.BRANCH.BOOKINGS(companyId, branchId) },
-    { text: 'Media', icon: <MediaIcon />, path: ROUTES.BRANCH.MEDIA(companyId, branchId) },
-  ];
+  const user = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
+  // read ids from URL first, else from user
+  const companyId =
+    params.companyId || user?.company_id || user?.roles?.[0]?.company_id || "";
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const branchId =
+    params.branchId || user?.branch_id || user?.roles?.[0]?.branch_id || "";
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
+  // routes (prefer ROUTES if exists)
+  const R = useMemo(() => {
+    const hasRoutes = ROUTES?.BRANCH?.DASHBOARD;
+    return hasRoutes ? ROUTES.BRANCH : fallbackBranchRoutes;
+  }, []);
+
+  const branchName =
+    user?.branch?.name ||
+    user?.roles?.[0]?.branch?.name ||
+    user?.branch_name ||
+    "Branch";
+
+  const roleName =
+    user?.roles?.[0]?.role ||
+    user?.role ||
+    "branch_user";
+
+  // menu items (you can adjust)
+  const navItems = useMemo(() => {
+    if (!companyId || !branchId) return [];
+
+    return [
+      { label: "Dashboard", icon: <DashboardIcon />, to: R.DASHBOARD(companyId, branchId) },
+      { label: "Contacts", icon: <ContactsIcon />, to: R.CONTACTS(companyId, branchId) },
+      { label: "Courts", icon: <CourtsIcon />, to: R.COURTS(companyId, branchId) },
+      { label: "Business Hours", icon: <HoursIcon />, to: R.BUSINESS_HOURS(companyId, branchId) },
+      { label: "Bookings", icon: <BookingsIcon />, to: R.BOOKINGS(companyId, branchId) },
+      { label: "Payments", icon: <PaymentsIcon />, to: R.PAYMENTS(companyId, branchId) },
+      { label: "Staff", icon: <StaffIcon />, to: typeof R.STAFF === "function" ? R.STAFF(companyId, branchId) : `/branch/${companyId}/${branchId}/staff` },
+      { label: "Media", icon: <MediaIcon />, to: R.MEDIA(companyId, branchId) },
+    ];
+  }, [R, companyId, branchId]);
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const menuOpen = Boolean(anchorEl);
+
+  const handleOpenMenu = (e) => setAnchorEl(e.currentTarget);
+  const handleCloseMenu = () => setAnchorEl(null);
 
   const handleLogout = async () => {
-    await logout();
-    navigate(ROUTES.BRANCH.LOGIN);
+    handleCloseMenu();
+    try {
+      await logout();
+    } catch (e) {
+      // ignore
+    }
+    navigate("/branch/login", { replace: true });
   };
 
-  const drawer = (
-    <Box>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Branch Console
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname.startsWith(item.path)}
-              onClick={() => navigate(item.path)}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </Box>
-  );
-
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: "flex" }}>
+      {/* Top Bar */}
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          zIndex: (theme) => theme.zIndex.drawer + 1,
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {user?.branch?.name || 'Branch Dashboard'}
-          </Typography>
-          <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
-            <Avatar sx={{ width: 32, height: 32 }}>
-              {user?.first_name?.[0] || 'A'}
-            </Avatar>
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem onClick={() => { navigate(ROUTES.BRANCH.PROFILE(companyId, branchId)); handleMenuClose(); }}>
-              <ListItemIcon>
-                <AccountCircleIcon fontSize="small" />
-              </ListItemIcon>
-              Profile
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              Logout
-            </MenuItem>
-          </Menu>
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+              Branch Console
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.5 }}>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                {branchName}
+              </Typography>
+              <Chip size="small" label={roleName} variant="outlined" sx={{ color: "white", borderColor: "rgba(255,255,255,0.35)" }} />
+            </Box>
+          </Box>
+
+          {/* User Menu */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" sx={{ display: { xs: "none", sm: "block" } }}>
+              {user?.name || user?.email || "User"}
+            </Typography>
+
+            <Tooltip title="Account">
+              <IconButton onClick={handleOpenMenu} size="small" sx={{ ml: 1 }}>
+                <Avatar sx={{ width: 34, height: 34 }}>
+                  {(user?.name || user?.email || "U").slice(0, 1).toUpperCase()}
+                </Avatar>
+              </IconButton>
+            </Tooltip>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={menuOpen}
+              onClose={handleCloseMenu}
+              transformOrigin={{ horizontal: "right", vertical: "top" }}
+              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+            >
+              <MenuItem disabled>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {user?.name || "Branch User"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {user?.email || ""}
+                  </Typography>
+                </Box>
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MenuItem>
+            </Menu>
+          </Box>
         </Toolbar>
       </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-      <Box
-        component="main"
+
+      {/* Left Drawer */}
+      <Drawer
+        variant="permanent"
         sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: drawerWidth,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: {
+            width: drawerWidth,
+            boxSizing: "border-box",
+          },
         }}
       >
+        <Toolbar />
+        <Box sx={{ px: 2, py: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+            {}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Company: {companyId || "—"} • Branch: {branchId || "—"}
+          </Typography>
+        </Box>
+
+        <Divider />
+
+        <List sx={{ px: 1 }}>
+          {navItems.map((item) => {
+            const selected = location.pathname === item.to;
+            return (
+              <ListItemButton
+                key={item.label}
+                component={RouterLink}
+                to={item.to}
+                selected={selected}
+                sx={{
+                  borderRadius: 2,
+                  mx: 1,
+                  my: 0.5,
+                }}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            );
+          })}
+        </List>
+      </Drawer>
+
+      {/* Main Content */}
+      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <Toolbar />
         {children}
       </Box>
     </Box>
   );
 };
-
-

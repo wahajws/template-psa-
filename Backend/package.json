@@ -13,7 +13,8 @@
     "test": "jest",
     "test:apis": "node scripts/test-apis.js",
     "seed:full": "node scripts/seed-comprehensive.js",
-    "import:csv": "node scripts/import-csv-data.js"
+    "import:csv": "node scripts/import-csv-data.js",
+    "seed:csv": "node scripts/seed-auto.js"
   },
   "keywords": ["booking", "sports", "pickleball"],
   "author": "",

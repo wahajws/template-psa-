@@ -45,6 +45,8 @@ export const ROUTES = {
     BUSINESS_HOURS: (companyId, branchId) => `/branch/${companyId}/${branchId}/business-hours`,
     BOOKINGS: (companyId, branchId) => `/branch/${companyId}/${branchId}/bookings`,
     MEDIA: (companyId, branchId) => `/branch/${companyId}/${branchId}/media`,
+    PAYMENTS: (companyId, branchId) => `/branch/${companyId}/${branchId}/payments`,
+    STAFF: (companyId, branchId) => `/branch/${companyId}/${branchId}/staff`,
   },
   // Customer
   CUSTOMER: {

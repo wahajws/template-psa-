@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export const API_ENDPOINTS = {
   // Auth
@@ -107,6 +107,7 @@ export const API_ENDPOINTS = {
       BEHAVIOUR: '/admin/behaviour',
       BEHAVIOUR_EXPORT: '/admin/behaviour/export',
     },
+  
     COMPANY: {
       BRANCHES: (companyId) => `/admin/companies/${companyId}/branches`,
       COURTS: (companyId, branchId) => `/admin/companies/${companyId}/branches/${branchId}/courts`,
@@ -115,7 +116,17 @@ export const API_ENDPOINTS = {
       CAMPAIGNS: (companyId) => `/admin/companies/${companyId}/campaigns`,
       PROMO_CODES: (companyId) => `/admin/companies/${companyId}/promo-codes`,
       STAFF: (companyId) => `/admin/companies/${companyId}/staff`,
+      ACTIVITY: (companyId, limit = 5) => `/admin/companies/${companyId}/activity?limit=${limit}`,
+      MEMBERSHIPS: (companyId) => `/admin/companies/${companyId}/memberships`,
     },
+
+    BRANCHES: {
+      LIST: (companyId) => `/admin/companies/${companyId}/branches`,
+      CREATE: (companyId) => `/companies/${companyId}/branches`,
+      UPDATE: (companyId, branchId) => `/companies/${companyId}/branches/${branchId}`,
+      DELETE: (companyId, branchId) => `/companies/${companyId}/branches/${branchId}`,
+    },
+
   },
 };
 

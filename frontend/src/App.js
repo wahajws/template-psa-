@@ -33,8 +33,18 @@ import { WalletPage as CustomerWalletPage } from './pages/customer/WalletPage';
 import { NotificationsPage as CustomerNotificationsPage } from './pages/customer/NotificationsPage';
 import { ProfilePage as CustomerProfilePage } from './pages/customer/ProfilePage';
 
-const CompanyDashboardPage = () => <div>Company Dashboard</div>;
-const BranchDashboardPage = () => <div>Branch Dashboard</div>;
+// const CompanyDashboardPage = () => <div>Company Dashboard</div>;
+import { DashboardPage as CompanyDashboardPage } from './pages/company/DashboardPage';
+import { BranchesPage as CompanyBranchesPage } from './pages/company/BranchesPage';
+import { ServicesPage as CompanyServicesPage } from './pages/company/ServicesPage';
+import { MembershipPlansPage as CompanyMembershipPlansPage } from './pages/company/MembershipPlansPage';
+import { CampaignsPage as CompanyCampaignsPage } from './pages/company/CampaignsPage';
+import { BookingsPage as CompanyBookingsPage } from './pages/company/BookingsPage';
+import { PaymentsPage as CompanyPaymentsPage } from './pages/company/PaymentsPage';
+
+// const BranchDashboardPage = () => <div>Branch Dashboard</div>;
+
+import { DashboardPage as BranchDashboardPage } from './pages/branch/DashboardPage';
 
 const theme = createTheme({
   palette: {
@@ -181,6 +191,55 @@ function App() {
                     }
                   />
                   <Route
+                    path="/company/:companyId/branches"
+                    element={
+                      <ProtectedRoute requiredRole={USER_ROLES.COMPANY_ADMIN}>
+                        <CompanyBranchesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/company/:companyId/services"
+                    element={
+                      <ProtectedRoute requiredRole={USER_ROLES.COMPANY_ADMIN}>
+                        <CompanyServicesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/company/:companyId/membership-plans"
+                    element={
+                      <ProtectedRoute requiredRole={USER_ROLES.COMPANY_ADMIN}>
+                        <CompanyMembershipPlansPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/company/:companyId/campaigns"
+                    element={
+                      <ProtectedRoute requiredRole={USER_ROLES.COMPANY_ADMIN}>
+                        <CompanyCampaignsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/company/:companyId/bookings"
+                    element={
+                      <ProtectedRoute requiredRole={USER_ROLES.COMPANY_ADMIN}>
+                        <CompanyBookingsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/company/:companyId/payments"
+                    element={
+                      <ProtectedRoute requiredRole={USER_ROLES.COMPANY_ADMIN}>
+                        <CompanyPaymentsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
                     path="/company/:companyId/*"
                     element={
                       <ProtectedRoute requiredRole={USER_ROLES.COMPANY_ADMIN}>
@@ -191,6 +250,40 @@ function App() {
 
                   {/* Branch Routes */}
                   <Route path="/branch/login" element={<BranchLoginPage />} />
+                  <Route
+                    path="/branch/:companyId/:branchId/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <RoleRoute allowedRoles={[USER_ROLES.BRANCH_MANAGER, USER_ROLES.STAFF]}>
+                          <BranchDashboardPage />
+                        </RoleRoute>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/branch/:companyId/:branchId/bookings"
+                    element={
+                      <ProtectedRoute>
+                        <RoleRoute allowedRoles={[USER_ROLES.BRANCH_MANAGER, USER_ROLES.STAFF]}>
+                          <div>Branch Bookings Page</div>
+                        </RoleRoute>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/branch/:companyId/:branchId/payments"
+                    element={
+                      <ProtectedRoute>
+                        <RoleRoute allowedRoles={[USER_ROLES.BRANCH_MANAGER]}>
+                          <div>Branch Payments Page</div>
+                        </RoleRoute>
+                      </ProtectedRoute>
+                    }
+                  />
+
+
                   <Route
                     path="/branch/:companyId/:branchId/*"
                     element={

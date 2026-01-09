@@ -1,6 +1,12 @@
+// src/models/Service.js (or wherever your Service model is)
+
 module.exports = (sequelize, DataTypes) => {
   const Service = sequelize.define('Service', {
-    id: { type: DataTypes.CHAR(36), primaryKey: true },
+    id: {
+      type: DataTypes.CHAR(36),
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,   // ✅ ADD THIS
+    },
     company_id: { type: DataTypes.CHAR(36), allowNull: false, references: { model: 'companies', key: 'id' } },
     name: { type: DataTypes.STRING(255), allowNull: false },
     service_type: { type: DataTypes.ENUM('court_booking', 'gym_membership', 'class_session', 'coaching', 'equipment_rental', 'other'), allowNull: false },
@@ -13,12 +19,16 @@ module.exports = (sequelize, DataTypes) => {
     created_by: { type: DataTypes.CHAR(36), allowNull: false },
     updated_by: { type: DataTypes.CHAR(36), allowNull: true },
     deleted_at: { type: DataTypes.DATE, allowNull: true }
-  }, { tableName: 'services', timestamps: true, createdAt: 'created_at', updatedAt: 'updated_at' });
+  }, {
+    tableName: 'services',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
+  });
+
   Service.associate = function(models) {
     Service.belongsTo(models.Company, { foreignKey: 'company_id', as: 'company' });
   };
+
   return Service;
 };
-
-
-
